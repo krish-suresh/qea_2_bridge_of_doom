@@ -2,10 +2,10 @@ function bridgeOfDoomMVP()
     % Insert any setup code you want to run here
 
     % u will be our parameter
-    show_plots = true;
+    show_plots = false;
     syms u;
     beta = 5;
-    t_end = 15;
+    t_end = beta*3.2;
     % this is the equation of the bridge
     R = 4*[0.396*cos(2.65*(u/beta+1.4));
         -0.99*sin(u/beta+1.4);
