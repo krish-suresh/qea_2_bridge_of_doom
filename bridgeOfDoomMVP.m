@@ -2,7 +2,7 @@ function bridgeOfDoomMVP()
     % Insert any setup code you want to run here
 
     % u will be our parameter
-    show_plots = false
+    show_plots = true;
     syms u;
     beta = 5;
     t_end = 15;
@@ -25,7 +25,7 @@ function bridgeOfDoomMVP()
 
     d = 0.235;
     if show_plots
-        figure(3)
+        figure(1)
         fplot(R(1),R(2),[0 t_end]);  hold on;
         for vector_t=1:3:t_end
                 quiver(subs(R(1),u,vector_t), subs(R(2),u,vector_t), subs(That(1),u,vector_t), subs(That(2),u,vector_t));
@@ -38,20 +38,31 @@ function bridgeOfDoomMVP()
         axis equal;
         hold off;
 
-        figure(1)
-        fplot(norm(T), [0 t_end]);
+        figure(2)
+        subplot(2,1,1);
+        fplot(norm(T), [0 t_end]); hold on;
         xlabel("t (seconds)")
         ylabel("speed (meters/sec)")
+        %         TODO Plot exp data with dashed line
 
-        figure(2)
+        subplot(2,1,2);
         fplot(omega, [0 t_end]);
         xlabel("t (seconds)")
         ylabel("omega (radians/sec)")
+%         TODO Plot exp data with dashed line
+        hold off;
+        
+        figure(3);
+        fplot(norm(T) - d/2*omega, [0 t_end]); hold on
+        fplot(norm(T) + d/2*omega, [0 t_end]); hold off
+        xlabel("t (seconds)")
+        ylabel("speed (meters/sec)")
+        legend({"Left Wheel Velocity", "Right Wheel Velocity"}, 'Location', "southeast");
     end
 
     pub = rospublisher('raw_vel');
 
-    % stop the robot if it's going right now
+%     stop the robot if it's going right now
     stopMsg = rosmessage(pub);
     stopMsg.Data = [0 0];
     send(pub, stopMsg);
