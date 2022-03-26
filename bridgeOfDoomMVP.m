@@ -61,7 +61,7 @@ function bridgeOfDoomMVP()
     end
 
     pub = rospublisher('raw_vel');
-
+    t = 0;
 %     stop the robot if it's going right now
     stopMsg = rosmessage(pub);
     stopMsg.Data = [0 0];
@@ -76,12 +76,8 @@ function bridgeOfDoomMVP()
 
     rostic;
 
-    while true
+    while t < t_end
         t = rostoc();
-        
-        if t > t_end
-            break
-        end
         msg = rosmessage(pub);
         vL = double(subs(norm(T) - d/2*omega, u, t));
         vR = double(subs(norm(T) + d/2*omega, u, t));

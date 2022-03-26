@@ -1,6 +1,6 @@
 Kp_heading = 1;
 Ki_heading = 0;
-Kd_heading = 0.8;
+Kd_heading = 0;
 Kp_axial = 0.5;
 Ki_axial = 0;
 Kd_axial = 0;
@@ -11,8 +11,8 @@ display_error_graph = true;
 R_fun = @(theta) ([cos(theta) -sin(theta); sin(theta) cos(theta)]);
 syms u b;
 
-max_velocity = 0.8;
-acc = 0.5;
+max_velocity = 0.2;
+acc = 0.1;
 time_total = 15;
 
 %Time to reach max velocity
