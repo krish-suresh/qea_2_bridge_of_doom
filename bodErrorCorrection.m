@@ -1,4 +1,6 @@
 
+pid_h = pid(1,0,0);
+pid_d = pid(1,0,0);
 show_plots = false;
 syms u;
 beta = 4;
@@ -19,44 +21,8 @@ Nhat = N/norm(N);
 % angular velocity vector
 B = cross(That, N);
 omega = B(3);
-
+speed = norm(T);
 d = 0.235;
-
-if show_plots
-    figure(1)
-    fplot(R(1),R(2),[0 t_end]);  hold on;
-    for vector_t=1:3:t_end
-            quiver(subs(R(1),u,vector_t), subs(R(2),u,vector_t), subs(That(1),u,vector_t), subs(That(2),u,vector_t));
-            quiver(subs(R(1),u,vector_t), subs(R(2),u,vector_t), subs(Nhat(1),u,vector_t), subs(Nhat(2),u,vector_t));
-    end
-    xlabel("x (meters)")
-    ylabel("y (meters)")
-    axis([-4, 4, -4, 4]);
-    axis padded;
-    axis equal;
-    hold off;
-
-    figure(2)
-    subplot(2,1,1);
-    fplot(norm(T), [0 t_end]); hold on;
-    xlabel("t (seconds)")
-    ylabel("speed (meters/sec)")
-    %         TODO Plot exp data with dashed line
-
-    subplot(2,1,2);
-    fplot(omega, [0 t_end]);
-    xlabel("t (seconds)")
-    ylabel("omega (radians/sec)")
-%         TODO Plot exp data with dashed line
-    hold off;
-    
-    figure(3);
-    fplot(norm(T) - d/2*omega, [0 t_end]); hold on
-    fplot(norm(T) + d/2*omega, [0 t_end]); hold off
-    xlabel("t (seconds)")
-    ylabel("speed (meters/sec)")
-    legend({"Left Wheel Velocity", "Right Wheel Velocity"}, 'Location', "southeast");
-end
 
 pub = rospublisher('raw_vel');
 enc = rossubscriber('/encoders');
@@ -100,8 +66,8 @@ while true
     t = rostoc();
 % Drive robot
     msg = rosmessage(pub);
-    vL = double(subs(norm(T) - d/2*omega, u, t));
-    vR = double(subs(norm(T) + d/2*omega, u, t));
+    vL = double(subs(speed - d/2*omega, u, t));
+    vR = double(subs(speed + d/2*omega, u, t));
     msg.Data = [vL, vR];
     send(pub, msg);
 % Read odo
