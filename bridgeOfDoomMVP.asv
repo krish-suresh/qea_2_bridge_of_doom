@@ -75,13 +75,7 @@ function bridgeOfDoomMVP()
         location(1) = location(1) + velo_car*cos(location(3))*(official_time(a)-official_time(a-1));
         location(2) = location(2) + velo_car*sin(location(3))*(official_time(a)-official_time(a-1));
         location(3) = location(3) + omega_three*(official_time(a)-official_time(a-1));
-        Y(a,1) = location(1);
-        Y(a,2) = location(2);
-        Y(a,3) = location(3);
     end
-
-
-
     d = 0.235;
     if show_plots
         figure(1)
@@ -100,31 +94,23 @@ function bridgeOfDoomMVP()
         figure(2)
         subplot(2,1,1);
         fplot(norm(T), [0 t_end]); hold on;
-        plot(new_time, data_both, '-'); hold on;
         xlabel("t (seconds)")
         ylabel("speed (meters/sec)")
-        legend('theoretical', 'experimental')
         %         TODO Plot exp data with dashed line
 
         subplot(2,1,2);
         fplot(omega, [0 t_end]);
-        plot(new_time, data_omega, '-'); hold on;
         xlabel("t (seconds)")
         ylabel("omega (radians/sec)")
-        legend('theoretical', 'experimental')
 %         TODO Plot exp data with dashed line
         hold off;
         
         figure(3);
         fplot(norm(T) - d/2*omega, [0 t_end]); hold on
-        fplot(norm(T) + d/2*omega, [0 t_end]);
-        plot(new_time, data_left, '-'); hold on;
-        plot(new_time, data_right, '-');
+        fplot(norm(T) + d/2*omega, [0 t_end]); hold off
         xlabel("t (seconds)")
         ylabel("speed (meters/sec)")
-        legend("Left Wheel Velocity Theoretical", "Right Wheel Velocity Theoretical", ...
-            "Left Wheel Velocity Experimental", "Right Wheel Velocity Experiemntal");
-        legend('Location', "northeast");
+        legend({"Left Wheel Velocity", "Right Wheel Velocity"}, 'Location', "southeast");
     end
 
     pub = rospublisher('raw_vel');
