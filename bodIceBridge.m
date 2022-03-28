@@ -46,7 +46,7 @@ d = 0.235;
 total_dist = vpa(int(norm(T),u ,[0, 3.2]))/4
 
 acc = 0.015;
-max_velocity = 0.03;
+max_velocity = 0.1;
 t_1 = max_velocity / acc;
 
 t_end = total_dist/max_velocity + t_1

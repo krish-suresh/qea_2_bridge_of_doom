@@ -1,24 +1,17 @@
-Kp_heading = 1;
+Kp_heading = 0.6;
 Ki_heading = 0;
-Kd_heading = 0.3;
-Kp_axial = 0.5;
+Kd_heading = 0.7;
+Kp_axial = 0.7;
 Ki_axial = 0;
-Kd_axial = 0;
+Kd_axial = 0.1;
 
-display_vel_graph = true;
+display_vel_graph = false;
 display_pos_graph = true;
 display_error_graph = true;
+physical_neato = true;
 R_fun = @(theta) ([cos(theta) -sin(theta); sin(theta) cos(theta)]);
 syms u b;
 
-max_velocity = 0.8;
-acc = 0.5;
-time_total = 15;
-
-%Time to reach max velocity
-t_1 = max_velocity / acc;
-%Time to begin deceleration 
-t_2 = time_total - t_1;
 % this is the equation of the bridge
 
 R = [0.396*cos(2.65*(u+1.4));
@@ -43,10 +36,10 @@ omega = B(3);
 speed = norm(T);
 d = 0.235;
 
-total_dist = vpa(int(norm(T),u ,[0, 3.2]))
+total_dist = vpa(int(norm(T),u ,[0, 3.1]))
 
 acc = 0.05;
-max_velocity = 0.3;
+max_velocity = 0.1;
 t_1 = max_velocity / acc;
 
 t_end = total_dist/max_velocity + t_1
@@ -60,7 +53,7 @@ distance_traveled = int(motion_profile, b);
 pub = rospublisher('raw_vel');
 enc = rossubscriber('/encoders');
 % clock = rossubscriber('/clock');
-imu = rossubscriber('/imu');
+% imu = rossubscriber('/imu');
 % accel = rossubscriber("/accel");
 %     stop the robot if it's going right now
 stopMsg = rosmessage(pub);
@@ -69,19 +62,20 @@ send(pub, stopMsg);
 
 bridgeStart = double(subs(R,u,0));
 startingThat = double(subs(That,u,0));
+if ~physical_neato
 placeNeato(bridgeStart(1),  bridgeStart(2), startingThat(1), startingThat(2),0.5);
-
+end
 % wait a bit for robot to fall onto the bridge
 pause(2);
 d = 0.235;
 t_last = 0;
 [msg2,status,statustext] = receive(enc,10);
 enc_last = msg2.Data;
-[imuMsg,status,statustext] = receive(imu,10);
-heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+% [imuMsg,status,statustext] = receive(imu,10);
+% heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
 
 
-pose = [bridgeStart(1),  bridgeStart(2),heading(3)];
+pose = [bridgeStart(1),  bridgeStart(2),atan2(startingThat(2), startingThat(1))];
 poses = pose;
 if display_pos_graph
     figure(2);
@@ -142,8 +136,8 @@ while t < t_end
     v_wheels = enc_delta/t_delta;
     v = mean(v_wheels);
     w = (v_wheels(2)-v_wheels(1))/0.235;
-    [imuMsg,status,statustext] = receive(imu,10);
-    heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+%     [imuMsg,status,statustext] = receive(imu,10);
+%     heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
     if display_vel_graph
         figure(1);
         hold on;
@@ -160,11 +154,12 @@ while t < t_end
     end
     pose(1) = pose(1)+v(1)*cos(pose(3))*t_delta;
     pose(2) = pose(2)+v(1)*sin(pose(3))*t_delta;
-%     pose(3) = pose(3)+w*t_delta;
-    pose(3) = heading(3);
+    pose(3) = pose(3)+w*t_delta;
+%     pose(3) = heading(3);
     if display_pos_graph
         figure (2);
         hold on
+        plot(target_pose(:,1), target_pose(:,2), 'b*');
         plot(pose(:,1), pose(:,2), 'r*'); axis equal;
         hold off;
     end

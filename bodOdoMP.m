@@ -1,14 +1,6 @@
 
 syms u b;
 
-max_velocity = 0.2;
-acc = 0.1;
-time_total = 15;
-
-%Time to reach max velocity
-t_1 = max_velocity / acc;
-%Time to begin deceleration 
-t_2 = time_total - t_1;
 % this is the equation of the bridge
 
 R = [0.396*cos(2.65*(u+1.4));
@@ -36,7 +28,7 @@ d = 0.235;
 total_dist = vpa(int(norm(T),u ,[0, 3.2]))
 
 acc = 0.05;
-max_velocity = 0.3;
+max_velocity = 0.1;
 t_1 = max_velocity / acc;
 
 t_end = total_dist/max_velocity + t_1
@@ -50,7 +42,7 @@ distance_traveled = int(motion_profile, b);
 pub = rospublisher('raw_vel');
 enc = rossubscriber('/encoders');
 % clock = rossubscriber('/clock');
-imu = rossubscriber('/imu');
+% imu = rossubscriber('/imu');
 % accel = rossubscriber("/accel");
 %     stop the robot if it's going right now
 stopMsg = rosmessage(pub);
@@ -59,7 +51,7 @@ send(pub, stopMsg);
 
 bridgeStart = double(subs(R,u,0));
 startingThat = double(subs(That,u,0));
-placeNeato(bridgeStart(1),  bridgeStart(2), startingThat(1), startingThat(2),0.5);
+% placeNeato(bridgeStart(1),  bridgeStart(2), startingThat(1), startingThat(2),0.5);
 
 % wait a bit for robot to fall onto the bridge
 pause(2);
@@ -67,11 +59,11 @@ d = 0.235;
 t_last = 0;
 [msg2,status,statustext] = receive(enc,10);
 enc_last = msg2.Data;
-[imuMsg,status,statustext] = receive(imu,10);
-heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+% [imuMsg,status,statustext] = receive(imu,10);
+% heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
 
 
-pose = [bridgeStart(1),  bridgeStart(2),heading(3)];
+pose = [bridgeStart(1),  bridgeStart(2),atan2(startingThat(2), startingThat(1))];
 poses = pose;
 figure(2);
 clf;
@@ -112,8 +104,8 @@ while true
     v_wheels = enc_delta/t_delta;
     v = mean(v_wheels);
     w = (v_wheels(2)-v_wheels(1))/0.235;
-    [imuMsg,status,statustext] = receive(imu,10);
-    heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+%     [imuMsg,status,statustext] = receive(imu,10);
+%     heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
     figure(1);
     hold on;
     plot(t, cur_dist, 'r*');
@@ -122,8 +114,8 @@ while true
 %     plot(vR, t, 'b*');
     pose(1) = pose(1)+v(1)*cos(pose(3))*t_delta;
     pose(2) = pose(2)+v(1)*sin(pose(3))*t_delta;
-%     pose(3) = pose(3)+w*t_delta;
-    pose(3) = heading(3);
+    pose(3) = pose(3)+w*t_delta;
+%     pose(3) = heading(3);
     figure (2);
     hold on
     plot(pose(:,1), pose(:,2), 'r*'); axis equal;
