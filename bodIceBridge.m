@@ -1,27 +1,27 @@
-Kp_heading = 1;
+Kp_heading = 0;
 Ki_heading = 0;
 Kd_heading = 0;
 Kp_axial = 0.5;
 Ki_axial = 0;
 Kd_axial = 0;
 
+Kp_h = 0.08;
+Kd_h = 0.02;
+
+Kp_w = 0.0000;
+Kd_w = 0;
+
+Kv = 1;
+Ka = 1;
 display_vel_graph = false;
 display_pos_graph = true;
-display_error_graph = true;
+display_error_graph = false;
 R_fun = @(theta) ([cos(theta) -sin(theta); sin(theta) cos(theta)]);
 syms u b;
 
-max_velocity = 0.2;
-acc = 0.1;
-time_total = 15;
-
-%Time to reach max velocity
-t_1 = max_velocity / acc;
-%Time to begin deceleration 
-t_2 = time_total - t_1;
 % this is the equation of the bridge
 
-R = [0.396*cos(2.65*(u+1.4));
+R = 4*[0.396*cos(2.65*(u+1.4));
     -0.99*sin(u+1.4);
     0];
 
@@ -43,10 +43,10 @@ omega = B(3);
 speed = norm(T);
 d = 0.235;
 
-total_dist = vpa(int(norm(T),u ,[0, 3.2]))
+total_dist = vpa(int(norm(T),u ,[0, 3.2]))/4
 
-acc = 0.05;
-max_velocity = 0.3;
+acc = 0.015;
+max_velocity = 0.03;
 t_1 = max_velocity / acc;
 
 t_end = total_dist/max_velocity + t_1
@@ -59,7 +59,7 @@ motion_profile = piecewise(b < t_1, (b*acc), t_1 < b < t_2, max_velocity, b > t_
 distance_traveled = int(motion_profile, b);
 pub = rospublisher('raw_vel');
 enc = rossubscriber('/encoders');
-% clock = rossubscriber('/clock');
+sub_states = rossubscriber('/gazebo/model_states', 'gazebo_msgs/ModelStates');
 imu = rossubscriber('/imu');
 % accel = rossubscriber("/accel");
 %     stop the robot if it's going right now
@@ -69,7 +69,7 @@ send(pub, stopMsg);
 
 bridgeStart = double(subs(R,u,0));
 startingThat = double(subs(That,u,0));
-placeNeato(bridgeStart(1),  bridgeStart(2), startingThat(1), startingThat(2),0.5);
+placeNeato(bridgeStart(1),  bridgeStart(2), startingThat(1), startingThat(2),0.6);
 
 % wait a bit for robot to fall onto the bridge
 pause(2);
@@ -83,6 +83,7 @@ heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientati
 
 pose = [bridgeStart(1),  bridgeStart(2),heading(3)];
 poses = pose;
+prev_pose = pose;
 if display_pos_graph
     figure(2);
     clf;
@@ -115,6 +116,8 @@ rostic;
 
 while t < t_end
     t = rostoc();
+    gazebo_pose = getNeatoPose(receive(sub_states, 10));
+    pose = gazebo_pose;
     t_delta = t-t_last;
 % Drive robot
     target_position = subs(R, u,cur_dist);
@@ -129,21 +132,25 @@ while t < t_end
     pose_error_rot_last = pose_error_rot;
     heading_correction = pose_error_rot(1)*Kp_heading + d_pose_error_rot(1)*Kd_heading;
     axial_correction = pose_error_rot(2)*Kp_axial + d_pose_error_rot(2)*Kd_axial;
+    h_correction = pose_error_rot(2)*Kp_h + d_pose_error_rot(3)*Kd_h;
+    w_calc = (prev_pose(3)-pose(3))/t_delta;
+    w_correction = double((subs(omega, u,cur_dist)-w_calc)*Kp_w)
     cur_vel = subs(motion_profile, b, t);
     cur_dist = cur_dist +cur_vel*t_delta;
-    vL = double(subs(speed - d/2*omega, u,cur_dist)*cur_vel)+heading_correction+axial_correction;
-    vR = double(subs(speed + d/2*omega, u,cur_dist)*cur_vel)-heading_correction+axial_correction;
+    vL = double(subs(speed - d/2*omega, u,cur_dist)*cur_vel)-w_correction-h_correction+heading_correction+axial_correction;
+    vR = double(subs(speed + d/2*omega, u,cur_dist)*cur_vel)+w_correction+h_correction-heading_correction+axial_correction;
     msg = rosmessage(pub);
     msg.Data = [vL, vR];
     send(pub, msg);
+    prev_pose = pose;
 % Read odo
-    [msg2,status,statustext] = receive(enc,10);
-    enc_delta = msg2.Data-enc_last;
-    v_wheels = enc_delta/t_delta;
-    v = mean(v_wheels);
-    w = (v_wheels(2)-v_wheels(1))/0.235;
-    [imuMsg,status,statustext] = receive(imu,10);
-    heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+%     [msg2,status,statustext] = receive(enc,10);
+%     enc_delta = msg2.Data-enc_last;
+%     v_wheels = enc_delta/t_delta;
+%     v = mean(v_wheels);
+%     w = (v_wheels(2)-v_wheels(1))/0.235;
+%     [imuMsg,status,statustext] = receive(imu,10);
+%     heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
     if display_vel_graph
         figure(1);
         hold on;
@@ -154,21 +161,25 @@ while t < t_end
     if display_error_graph
         figure(3);
         hold on;
-        plot(t, norm(pose_error(1:2)), 'r*');
-        plot(t, pose_error(3), 'b*');
+        plot(t, heading_correction, 'r*');
+        plot(t, axial_correction, 'b*');
+        plot(t, h_correction, 'g*');
+%         plot(t, norm(pose_error(1:2)), 'r*');
+%         plot(t, pose_error(3), 'b*');
         hold off;
     end
-    pose(1) = pose(1)+v(1)*cos(pose(3))*t_delta;
-    pose(2) = pose(2)+v(1)*sin(pose(3))*t_delta;
-%     pose(3) = pose(3)+w*t_delta;
-    pose(3) = heading(3);
+%     pose(1) = pose(1)+v(1)*cos(pose(3))*t_delta;
+%     pose(2) = pose(2)+v(1)*sin(pose(3))*t_delta;
+% %     pose(3) = pose(3)+w*t_delta;
+%     pose(3) = heading(3);
     if display_pos_graph
         figure (2);
         hold on
+        plot(target_pose(:,1), target_pose(:,2), 'b*');
         plot(pose(:,1), pose(:,2), 'r*'); axis equal;
         hold off;
     end
-    poses = [poses;pose];
+%     poses = [poses;pose];
     enc_last = msg2.Data;
     t_last = t;
     pause(0.005);

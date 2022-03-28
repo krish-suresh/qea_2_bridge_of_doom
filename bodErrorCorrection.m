@@ -1,11 +1,11 @@
 Kp_heading = 1;
 Ki_heading = 0;
-Kd_heading = 0.8;
+Kd_heading = 0.3;
 Kp_axial = 0.5;
 Ki_axial = 0;
 Kd_axial = 0;
 
-display_vel_graph = false;
+display_vel_graph = true;
 display_pos_graph = true;
 display_error_graph = true;
 R_fun = @(theta) ([cos(theta) -sin(theta); sin(theta) cos(theta)]);
