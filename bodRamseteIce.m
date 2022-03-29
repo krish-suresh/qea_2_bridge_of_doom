@@ -8,7 +8,7 @@ syms u b;
 
 % this is the equation of the bridge
 
-R = [0.396*cos(2.65*(u+1.4));
+R = 4*[0.396*cos(2.65*(u+1.4));
     -0.99*sin(u+1.4);
     0];
 ram_b = 0.6;
@@ -33,7 +33,7 @@ d = 0.235;
 
 total_dist = vpa(int(norm(T),u ,[0, 3]))/4
 
-acc = 0.05;
+acc = 0.015;
 max_velocity = 0.1;
 t_1 = max_velocity / acc;
 
@@ -48,6 +48,8 @@ distance_traveled = int(motion_profile, b);
 pub = rospublisher('raw_vel');
 enc = rossubscriber('/encoders');
 % clock = rossubscriber('/clock');
+sub_states = rossubscriber('/gazebo/model_states', 'gazebo_msgs/ModelStates');
+
 imu = rossubscriber('/imu');
 % accel = rossubscriber("/accel");
 %     stop the robot if it's going right now
@@ -103,6 +105,8 @@ rostic;
 
 while t < t_end
     t = rostoc();
+    gazebo_pose = getNeatoPose(receive(sub_states, 10));
+    pose = gazebo_pose;
     t_delta = t-t_last;
 % Drive robot
     target_position = subs(R, u,cur_dist);
@@ -132,13 +136,13 @@ while t < t_end
     msg.Data = [vL, vR];
     send(pub, msg);
 % Read odo
-    [msg2,status,statustext] = receive(enc,10);
-    enc_delta = msg2.Data-enc_last;
-    v_wheels = enc_delta/t_delta;
-    v = mean(v_wheels);
-    w = (v_wheels(2)-v_wheels(1))/0.235;
-    [imuMsg,status,statustext] = receive(imu,10);
-    heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+%     [msg2,status,statustext] = receive(enc,10);
+%     enc_delta = msg2.Data-enc_last;
+%     v_wheels = enc_delta/t_delta;
+%     v = mean(v_wheels);
+%     w = (v_wheels(2)-v_wheels(1))/0.235;
+%     [imuMsg,status,statustext] = receive(imu,10);
+%     heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
     if display_vel_graph
         figure(1);
         hold on;
@@ -153,10 +157,10 @@ while t < t_end
         plot(t, pose_error(3), 'b*');
         hold off;
     end
-    pose(1) = pose(1)+v(1)*cos(pose(3))*t_delta;
-    pose(2) = pose(2)+v(1)*sin(pose(3))*t_delta;
-%     pose(3) = pose(3)+w*t_delta;
-    pose(3) = heading(3);
+%     pose(1) = pose(1)+v(1)*cos(pose(3))*t_delta;
+%     pose(2) = pose(2)+v(1)*sin(pose(3))*t_delta;
+% %     pose(3) = pose(3)+w*t_delta;
+%     pose(3) = heading(3);
     if display_pos_graph
         figure (2);
         hold on
@@ -164,7 +168,7 @@ while t < t_end
         plot(pose(:,1), pose(:,2), 'r*'); axis equal;
         hold off;
     end
-    poses = [poses;pose];
+%     poses = [poses;pose];
     enc_last = msg2.Data;
     t_last = t;
     pause(0.005);

@@ -8,7 +8,7 @@ syms u b;
 
 % this is the equation of the bridge
 
-R = [0.396*cos(2.65*(u+1.4));
+R = 4*[0.396*cos(2.65*(u+1.4));
     -0.99*sin(u+1.4);
     0];
 ram_b = 0.6;
@@ -31,7 +31,7 @@ omega = B(3);
 speed = norm(T);
 d = 0.235;
 
-total_dist = vpa(int(norm(T),u ,[0, 3]))
+total_dist = vpa(int(norm(T),u ,[0, 3]))/4
 
 acc = 0.05;
 max_velocity = 0.1;
