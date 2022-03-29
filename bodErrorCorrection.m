@@ -1,20 +1,20 @@
-Kp_heading = 0.6;
+Kp_heading = 0.1;
 Ki_heading = 0;
-Kd_heading = 0.7;
-Kp_axial = 0.7;
+Kd_heading = 0.05;
+Kp_axial = 0.9;
 Ki_axial = 0;
 Kd_axial = 0.1;
 
 display_vel_graph = false;
 display_pos_graph = true;
-display_error_graph = true;
-physical_neato = true;
+display_error_graph = false;
+physical_neato = false;
 R_fun = @(theta) ([cos(theta) -sin(theta); sin(theta) cos(theta)]);
 syms u b;
 
 % this is the equation of the bridge
 
-R = [0.396*cos(2.65*(u+1.4));
+R = 4*[0.396*cos(2.65*(u+1.4));
     -0.99*sin(u+1.4);
     0];
 
@@ -36,7 +36,7 @@ omega = B(3);
 speed = norm(T);
 d = 0.235;
 
-total_dist = vpa(int(norm(T),u ,[0, 3.1]))
+total_dist = vpa(int(norm(T),u ,[0, 3]))/4
 
 acc = 0.05;
 max_velocity = 0.1;
@@ -53,7 +53,7 @@ distance_traveled = int(motion_profile, b);
 pub = rospublisher('raw_vel');
 enc = rossubscriber('/encoders');
 % clock = rossubscriber('/clock');
-% imu = rossubscriber('/imu');
+imu = rossubscriber('/imu');
 % accel = rossubscriber("/accel");
 %     stop the robot if it's going right now
 stopMsg = rosmessage(pub);
@@ -71,11 +71,11 @@ d = 0.235;
 t_last = 0;
 [msg2,status,statustext] = receive(enc,10);
 enc_last = msg2.Data;
-% [imuMsg,status,statustext] = receive(imu,10);
-% heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+[imuMsg,status,statustext] = receive(imu,10);
+heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
 
 
-pose = [bridgeStart(1),  bridgeStart(2),atan2(startingThat(2), startingThat(1))];
+pose = [bridgeStart(1),  bridgeStart(2),heading(3)];%atan2(startingThat(2), startingThat(1))];
 poses = pose;
 if display_pos_graph
     figure(2);
@@ -136,8 +136,8 @@ while t < t_end
     v_wheels = enc_delta/t_delta;
     v = mean(v_wheels);
     w = (v_wheels(2)-v_wheels(1))/0.235;
-%     [imuMsg,status,statustext] = receive(imu,10);
-%     heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
+    [imuMsg,status,statustext] = receive(imu,10);
+    heading = quat2eul([imuMsg.Orientation.X, imuMsg.Orientation.Y, imuMsg.Orientation.Z, imuMsg.Orientation.W]);
     if display_vel_graph
         figure(1);
         hold on;
@@ -154,8 +154,8 @@ while t < t_end
     end
     pose(1) = pose(1)+v(1)*cos(pose(3))*t_delta;
     pose(2) = pose(2)+v(1)*sin(pose(3))*t_delta;
-    pose(3) = pose(3)+w*t_delta;
-%     pose(3) = heading(3);
+%     pose(3) = pose(3)+w*t_delta;
+    pose(3) = heading(3);
     if display_pos_graph
         figure (2);
         hold on
